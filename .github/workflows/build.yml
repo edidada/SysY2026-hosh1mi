@@ -1,0 +1,36 @@
+# CI for Hosh1mi/SysY2026Compiler (2026 competition ARM-backend first prize).
+# Pure C++17 + bison/flex, no LLVM dependency. Local build skipped.
+name: build (SysY2026 hosh1mi)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: install deps
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential cmake ninja-build bison flex \
+          gcc-riscv64-linux-gnu g++-riscv64-linux-gnu
+
+    - name: Configure & Build
+      run: |
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build -j4
+
+    - name: smoke test (compiler runs)
+      run: |
+        cat > /tmp/smoke.sy <<'EOF'
+        int main() { return 0; }
+        EOF
+        ./build/compiler -S -o /tmp/smoke.s /tmp/smoke.sy
+        test -s /tmp/smoke.s
+        echo "--- generated asm ---"
+        head -20 /tmp/smoke.s
